@@ -17,6 +17,8 @@ public class UTF8toBOM {
      */
     private static String projectPath = null;
 
+    private static JFrame window;
+
     /**
      * We pack the UI-generation here, because I hate java swing...
      * The window frame is spartanic, and I will not work any more than necessary on it.
@@ -24,7 +26,7 @@ public class UTF8toBOM {
      */
     private static void createUI() {
         // Main window of the tool
-        JFrame window = new JFrame();
+        window = new JFrame();
         window.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 
         window.setSize(600,300);
@@ -116,6 +118,8 @@ public class UTF8toBOM {
 
         window.add(projectPathTextField, pathTextFieldGBC);
 
+
+        JLabel lblNote = new JLabel("");
         // Add the button to start the process
         JButton btnStart = new JButton(Strings.main_window_button_start);
         GridBagConstraints gbc_btnStart = new GridBagConstraints();
@@ -126,33 +130,54 @@ public class UTF8toBOM {
         btnStart.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                // TODO: add start message to info label
-
                 // Here, the magic happens
                 Converter.Status status = Converter.processProject(projectPath);
 
                 // The info label will be manipulated here
                 switch (status){
                     case success:
+                        lblNote.setText(Strings.note_success);
                         break;
                     case emptyPath:
+                        lblNote.setText(Strings.note_empty_path);
                         break;
                     case notAMod:
+                        lblNote.setText(Strings.note_not_a_mod);
+                        break;
+                    case notADirectory:
+                        lblNote.setText(Strings.note_not_a_directory);
                         break;
                     case unknownError:
-                        break;
-                    default:
+                        lblNote.setText(Strings.note_unknown_error);
                         break;
                 }
             }
         });
 
-        // TODO: Add a label to notify the user of stuff
-
         window.add(btnStart, gbc_btnStart);
+
+        // Adding a note label to post errors or success for the user
+        GridBagConstraints gbc_lblNote = new GridBagConstraints();
+        gbc_lblNote.insets = new Insets(0, 0, 0, 5);
+        gbc_lblNote.gridx = 0;
+        gbc_lblNote.gridy = 3;
+        gbc_lblNote.gridwidth = 3;
+        window.add(lblNote, gbc_lblNote);
+
 
 
         // Show everything
         window.setVisible(true);
+    }
+
+    /**
+     *  Displaying a simple dialog for some tool feedback
+     * @param ymlListSize Count of how many .yml files there were
+     * @param ymlConverted Count of how many .yml files were converted
+     * @param txtListSize Count of how many .txt files there were - unused as of yet
+     * @param txtConverted Count of how many .txt files were converted - unused as of yet
+     */
+    public static void showSuccessDialog(int ymlListSize, int ymlConverted, int txtListSize, int txtConverted) {
+        JOptionPane.showMessageDialog(window, "Of " + ymlListSize +" .yml files a total of " + ymlConverted + " were converted to the UTF-8 BOM encoding!");
     }
 }

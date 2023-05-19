@@ -13,6 +13,8 @@ import java.util.Arrays;
 public class Converter {
 
     private static ArrayList<File> ymlFiles = new ArrayList<>();
+
+    // I added this list here in case the .txt files need to be BOMified too in the future. Adding that will be just another line of code
     private static ArrayList<File> txtFiles = new ArrayList<>();
 
     private static final byte[] BOM = {(byte) 0xEF, (byte) 0xBB, (byte) 0xBF};
@@ -21,6 +23,7 @@ public class Converter {
         success,
         emptyPath,
         notAMod,
+        notADirectory,
         unknownError
     }
 
@@ -40,6 +43,12 @@ public class Converter {
 
                 boolean hasModDescription = false;
 
+                // Should be impossible, but better safe than sorry
+                if ( ! project.isDirectory()) {
+                    return Status.notADirectory;
+                }
+
+                // please ignore the NPE warning, it is physically impossible that project is null, since only new File(null) will produce a File field equal null. And we checked path as not null above
                 for (File file : project.listFiles()) {
                     if (FilenameUtils.isExtension(file.getName(), "mod")) {
                         hasModDescription = true;
@@ -50,26 +59,27 @@ public class Converter {
                 if (!hasModDescription) return Status.notAMod;
 
 
-                // Iterate over every file in the directory, just adding them to the ToDO-list
-                getFileNames(project);
-                // Just debugging some info
-                System.out.println("Count yml files: " + ymlFiles.size());
-                System.out.println("Count txt files: " + txtFiles.size());
+                // Iterate over every directory in the directory, just adding them to the To Do-list
+                for (File file : project.listFiles()) {
+                    // We are ignoring technical folders and files like .idea or .gradle on top project level
+                    if (file.getName().startsWith(".")) continue;
 
-                int bomifiedFiles = 0;
+                    getFileNames(file);
+                }
+
+                int ymlConverted = 0;
                 for (File yml : ymlFiles) {
                     try (FileInputStream stream = new FileInputStream(yml)) {
                         String content = IOUtils.toString(stream, StandardCharsets.UTF_8);
 
                         if (isBOMified(yml) == 0) {
                             writeBomFile(yml, content);
-                            bomifiedFiles++;
+                            ymlConverted++;
                         }
                     }
                 }
-                System.out.println("~~~~");
-                System.out.println("Count BOMified files: " + bomifiedFiles);
 
+                UTF8toBOM.showSuccessDialog(ymlFiles.size(), ymlConverted, txtFiles.size(), 0);
 
                 return Status.success;
             } catch (NullPointerException e) {
@@ -116,15 +126,12 @@ public class Converter {
             checkForBOM[2] = fileContent[2];
 
             if (Arrays.equals(checkForBOM, BOM)) {
-                System.out.println("File " + file.getName() + " already BOMified.");
                 return 1;
             }
         } catch (IOException e) {
             return -1;
         }
 
-
-        System.out.println("File " + file.getName() + " needs to be BOMified.");
         return 0;
     }
 
